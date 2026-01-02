@@ -1,0 +1,186 @@
+import React, { useState, useEffect } from 'react';
+import { userAPI, taskAPI } from '../services/api';
+import TaskList from '../components/TaskList';
+import TaskForm from '../components/TaskForm';
+import UserProfile from '../components/UserProfile';
+import '../styles/dashboard.css';
+
+function Dashboard({ user, onLogout }) {
+    const [tasks, setTasks] = useState([]);
+    const [profile, setProfile] = useState(user);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const [filterStatus, setFilterStatus] = useState('');
+    const [showTaskForm, setShowTaskForm] = useState(false);
+    const [editingTask, setEditingTask] = useState(null);
+
+    // Fetch tasks on mount
+    useEffect(() => {
+        fetchTasks();
+        fetchProfile();
+    }, [filterStatus]);
+
+    const fetchTasks = async () => {
+        setLoading(true);
+        try {
+            const response = await taskAPI.getTasks(filterStatus, '');
+            setTasks(response.data.tasks);
+            setError('');
+        } catch (err) {
+            setError('Failed to load tasks');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchProfile = async () => {
+        try {
+            const response = await userAPI.getProfile();
+            setProfile(response.data.user);
+        } catch (err) {
+            console.error('Failed to fetch profile');
+        }
+    };
+
+    const handleCreateTask = async (title, description, priority) => {
+        try {
+            await taskAPI.createTask(title, description, priority);
+            setSuccess('Task created successfully!');
+            setShowTaskForm(false);
+            fetchTasks();
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+            setError('Failed to create task');
+        }
+    };
+
+    const handleUpdateTask = async (id, updates) => {
+        try {
+            await taskAPI.updateTask(id, updates);
+            setSuccess('Task updated successfully!');
+            setEditingTask(null);
+            fetchTasks();
+            setTimeout(() => setSuccess(''), 3000);
+        } catch (err) {
+            setError('Failed to update task');
+        }
+    };
+
+    const handleDeleteTask = async (id) => {
+        if (window.confirm('Are you sure you want to delete this task?')) {
+            try {
+                await taskAPI.deleteTask(id);
+                setSuccess('Task deleted successfully!');
+                fetchTasks();
+                setTimeout(() => setSuccess(''), 3000);
+            } catch (err) {
+                setError('Failed to delete task');
+            }
+        }
+    };
+
+    const handleLogout = () => {
+        if (window.confirm('Are you sure you want to logout?')) {
+            onLogout();
+        }
+    };
+
+    return (
+        <div className="dashboard">
+            <header className="dashboard-header">
+                <div className="header-content">
+                    <h1>📋 Task Manager</h1>
+                    <UserProfile user={profile} onLogout={handleLogout} />
+                </div>
+            </header>
+
+            <div className="dashboard-container">
+                {error && <div className="error-message">{error}</div>}
+                {success && <div className="success-message">{success}</div>}
+
+                <div className="sidebar">
+                    <div className="filter-section">
+                        <h3>Filters</h3>
+                        <div className="filter-group">
+                            <label>Status:</label>
+                            <select
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                                className="filter-select"
+                            >
+                                <option value="">All</option>
+                                <option value="pending">Pending</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+
+                        <button
+                            className="btn btn-primary btn-block"
+                            onClick={() => {
+                                setShowTaskForm(true);
+                                setEditingTask(null);
+                            }}
+                        >
+                            ➕ New Task
+                        </button>
+                    </div>
+                </div>
+
+                <div className="main-content">
+                    {showTaskForm && (
+                        <div className="modal-overlay">
+                            <div className="modal">
+                                <div className="modal-header">
+                                    <h2>{editingTask ? 'Edit Task' : 'Create New Task'}</h2>
+                                    <button
+                                        className="close-btn"
+                                        onClick={() => {
+                                            setShowTaskForm(false);
+                                            setEditingTask(null);
+                                        }}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                <TaskForm
+                                    onSubmit={editingTask ?
+                                        (data) => handleUpdateTask(editingTask.id, data) :
+                                        (title, desc, priority) => handleCreateTask(title, desc, priority)
+                                    }
+                                    initialData={editingTask}
+                                    onCancel={() => {
+                                        setShowTaskForm(false);
+                                        setEditingTask(null);
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {loading ? (
+                        <div className="loading">Loading tasks...</div>
+                    ) : tasks.length === 0 ? (
+                        <div className="empty-state">
+                            <p>📭 No tasks found. Create one to get started!</p>
+                        </div>
+                    ) : (
+                        <TaskList
+                            tasks={tasks}
+                            onEdit={(task) => {
+                                setEditingTask(task);
+                                setShowTaskForm(true);
+                            }}
+                            onDelete={handleDeleteTask}
+                            onStatusChange={(id, status) => handleUpdateTask(id, { status })}
+                        />
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default Dashboard;

@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
-const { db } = require('../config/database');
+const { pool } = require('../config/database');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -23,27 +23,22 @@ router.post('/register', [
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        db.run(
+        const [result] = await pool.query(
             'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-            [username, email, hashedPassword],
-            function (err) {
-                if (err) {
-                    if (err.message.includes('UNIQUE')) {
-                        return res.status(400).json({ error: 'Username or email already exists' });
-                    }
-                    return res.status(500).json({ error: 'Failed to register user' });
-                }
-
-                const token = jwt.sign({ id: this.lastID, username }, JWT_SECRET, { expiresIn: '7d' });
-
-                res.status(201).json({
-                    message: 'User registered successfully',
-                    token,
-                    user: { id: this.lastID, username, email }
-                });
-            }
+            [username, email, hashedPassword]
         );
+
+        const token = jwt.sign({ id: result.insertId, username }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.status(201).json({
+            message: 'User registered successfully',
+            token,
+            user: { id: result.insertId, username, email }
+        });
     } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ error: 'Username or email already exists' });
+        }
         console.error('Registration error:', error);
         res.status(500).json({ error: 'Server error' });
     }
@@ -53,7 +48,7 @@ router.post('/register', [
 router.post('/login', [
     body('email').isEmail().withMessage('Invalid email address'),
     body('password').exists().withMessage('Password is required')
-], (req, res) => {
+], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
@@ -61,38 +56,35 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
-    db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
-        if (err) {
-            return res.status(500).json({ error: 'Database error' });
-        }
+    try {
+        const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+        const user = rows[0];
 
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        try {
-            const isMatch = await bcrypt.compare(password, user.password);
-            if (!isMatch) {
-                return res.status(401).json({ error: 'Invalid credentials' });
-            }
-
-            const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
-
-            res.json({
-                message: 'Login successful',
-                token,
-                user: {
-                    id: user.id,
-                    username: user.username,
-                    email: user.email,
-                    role: user.role
-                }
-            });
-        } catch (error) {
-            console.error('Login error:', error);
-            res.status(500).json({ error: 'Server error' });
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Invalid credentials' });
         }
-    });
+
+        const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.json({
+            message: 'Login successful',
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 
 module.exports = router;

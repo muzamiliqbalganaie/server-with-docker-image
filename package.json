@@ -18,7 +18,7 @@
     "helmet": "^7.1.0",
     "cors": "^2.8.5",
     "express-validator": "^7.0.1",
-    "sqlite3": "^5.1.6"
+    "mysql2": "^3.6.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

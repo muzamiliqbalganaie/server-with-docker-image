@@ -88,7 +88,7 @@ initDatabase()
             console.log(`📡 Environment: ${NODE_ENV}`);
             console.log(`🌐 HTTP Port: ${PORT}`);
             console.log(`🔗 Bless Port: ${BLESS_PORT}`);
-            console.log(`💾 Database: SQLite (initialized)`);
+            console.log(`💾 Database: MySQL (initialized)`);
             console.log(`🔒 Security: Helmet + CORS enabled`);
             console.log(`🕒 Started: ${new Date().toISOString()}`);
             console.log('=================================');

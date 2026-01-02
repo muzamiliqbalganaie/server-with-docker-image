@@ -1,0 +1,23 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    env_file: .env
+    ports:
+      - "${PORT}:${PORT}"
+    restart: unless-stopped
+    # for development you can mount the project; remove for production
+    volumes:
+      - ./:/app:delegated
+    command: npm start
+  blessnode:
+    image: ghcr.io/blessnetwork/b7s:0.6.6.patch3
+    container_name: blessnetwork-node
+    env_file:
+      - .env
+    ports:
+      - "${BLESS_PORT}:9527"
+    restart: unless-stopped
+    # optional persistent data directory
+    volumes:
+      - ./bless_data:/data

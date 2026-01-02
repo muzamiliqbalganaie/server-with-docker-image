@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
+import ParticleBackground from './components/ParticleBackground';
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -43,6 +44,7 @@ function App() {
 
     return (
         <div className="app">
+            <ParticleBackground />
             {isAuthenticated ? (
                 <Dashboard user={user} onLogout={handleLogout} />
             ) : (

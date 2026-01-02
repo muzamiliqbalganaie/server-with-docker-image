@@ -3,23 +3,58 @@ import { userAPI, taskAPI } from '../services/api';
 import TaskList from '../components/TaskList';
 import TaskForm from '../components/TaskForm';
 import UserProfile from '../components/UserProfile';
+import TaskStats from '../components/TaskStats';
+import SearchBar from '../components/SearchBar';
+import ThemeToggle from '../components/ThemeToggle';
+import AnimatedCube from '../components/AnimatedCube';
+import ProgressRing from '../components/ProgressRing';
 import '../styles/dashboard.css';
 
 function Dashboard({ user, onLogout }) {
     const [tasks, setTasks] = useState([]);
+    const [filteredTasks, setFilteredTasks] = useState([]);
     const [profile, setProfile] = useState(user);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [showTaskForm, setShowTaskForm] = useState(false);
     const [editingTask, setEditingTask] = useState(null);
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        return localStorage.getItem('darkMode') === 'true';
+    });
 
     // Fetch tasks on mount
     useEffect(() => {
         fetchTasks();
         fetchProfile();
     }, [filterStatus]);
+
+    // Apply dark mode
+    useEffect(() => {
+        if (isDarkMode) {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
+        localStorage.setItem('darkMode', isDarkMode);
+    }, [isDarkMode]);
+
+    // Filter and search tasks
+    useEffect(() => {
+        let result = tasks;
+
+        // Apply search
+        if (searchQuery) {
+            result = result.filter(task =>
+                task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                task.description?.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+
+        setFilteredTasks(result);
+    }, [tasks, searchQuery]);
 
     const fetchTasks = async () => {
         setLoading(true);
@@ -86,12 +121,19 @@ function Dashboard({ user, onLogout }) {
         }
     };
 
+    const toggleTheme = () => {
+        setIsDarkMode(!isDarkMode);
+    };
+
     return (
         <div className="dashboard">
             <header className="dashboard-header">
                 <div className="header-content">
                     <h1>📋 Task Manager</h1>
-                    <UserProfile user={profile} onLogout={handleLogout} />
+                    <div className="header-actions">
+                        <ThemeToggle isDark={isDarkMode} onToggle={toggleTheme} />
+                        <UserProfile user={profile} onLogout={handleLogout} />
+                    </div>
                 </div>
             </header>
 
@@ -100,6 +142,12 @@ function Dashboard({ user, onLogout }) {
                 {success && <div className="success-message">{success}</div>}
 
                 <div className="sidebar">
+                    <ProgressRing completionRate={tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100) : 0} />
+
+                    <AnimatedCube stats={{ completionRate: tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100) : 0 }} />
+
+                    <TaskStats tasks={tasks} />
+
                     <div className="filter-section">
                         <h3>Filters</h3>
                         <div className="filter-group">
@@ -130,6 +178,7 @@ function Dashboard({ user, onLogout }) {
                 </div>
 
                 <div className="main-content">
+                    <SearchBar value={searchQuery} onChange={setSearchQuery} />
                     {showTaskForm && (
                         <div className="modal-overlay">
                             <div className="modal">
@@ -162,13 +211,13 @@ function Dashboard({ user, onLogout }) {
 
                     {loading ? (
                         <div className="loading">Loading tasks...</div>
-                    ) : tasks.length === 0 ? (
+                    ) : filteredTasks.length === 0 ? (
                         <div className="empty-state">
-                            <p>📭 No tasks found. Create one to get started!</p>
+                            <p>📭 {searchQuery ? 'No tasks match your search.' : 'No tasks found. Create one to get started!'}</p>
                         </div>
                     ) : (
                         <TaskList
-                            tasks={tasks}
+                            tasks={filteredTasks}
                             onEdit={(task) => {
                                 setEditingTask(task);
                                 setShowTaskForm(true);

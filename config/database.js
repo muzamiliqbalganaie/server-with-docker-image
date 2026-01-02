@@ -8,7 +8,9 @@ const pool = mysql.createPool({
     database: process.env.MYSQL_DATABASE || 'bless',
     waitForConnections: true,
     connectionLimit: Number(process.env.MYSQL_CONN_LIMIT || 10),
-    queueLimit: 0
+    queueLimit: 0,
+    enableKeepAlive: true,          // ← Add this
+    keepAliveInitialDelayMs: 0
 });
 
 const initDatabase = async () => {

@@ -9,14 +9,31 @@ const apiClient = axios.create({
     }
 });
 
-// Add token to requests
+// Add request/response logging
 apiClient.interceptors.request.use((config) => {
+    console.log('API Request:', config.method.toUpperCase(), config.url);
     const token = localStorage.getItem('token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
 });
+
+apiClient.interceptors.response.use(
+    (response) => {
+        console.log('API Response:', response.status, response.data);
+        return response;
+    },
+    (error) => {
+        console.error('API Error:', error.message, error.response?.data);
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+        return Promise.reject(error);
+    }
+);
 
 // Auth endpoints
 export const authAPI = {

@@ -151,13 +151,7 @@ function Dashboard({ user, onLogout }) {
 
             <div className="dashboard-container">
 
-                <div className="sidebar">
-                    <ProgressRing completionRate={tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100) : 0} />
-
-                    <AnimatedCube stats={{ completionRate: tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100) : 0 }} />
-
-                    <TaskStats tasks={tasks} />
-
+                <div className="sidebar s">
                     <div className="filter-section">
                         <h3>Filters</h3>
                         <div className="filter-group">
@@ -185,6 +179,13 @@ function Dashboard({ user, onLogout }) {
                             ➕ New Task
                         </button>
                     </div>
+                    <TaskStats tasks={tasks} />
+                    <ProgressRing completionRate={tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100) : 0} />
+
+                    <AnimatedCube stats={{ completionRate: tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100) : 0 }} />
+
+
+
                 </div>
 
                 <div className="main-content">

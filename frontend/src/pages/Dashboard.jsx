@@ -8,6 +8,7 @@ import SearchBar from '../components/SearchBar';
 import ThemeToggle from '../components/ThemeToggle';
 import AnimatedCube from '../components/AnimatedCube';
 import ProgressRing from '../components/ProgressRing';
+import Notification from '../components/Notification';
 import '../styles/dashboard.css';
 
 function Dashboard({ user, onLogout }) {
@@ -127,6 +128,17 @@ function Dashboard({ user, onLogout }) {
 
     return (
         <div className="dashboard">
+            <Notification
+                message={error}
+                type="error"
+                onClose={() => setError('')}
+            />
+            <Notification
+                message={success}
+                type="success"
+                onClose={() => setSuccess('')}
+            />
+
             <header className="dashboard-header">
                 <div className="header-content">
                     <h1>📋 Task Manager</h1>
@@ -138,8 +150,6 @@ function Dashboard({ user, onLogout }) {
             </header>
 
             <div className="dashboard-container">
-                {error && <div className="error-message">{error}</div>}
-                {success && <div className="success-message">{success}</div>}
 
                 <div className="sidebar">
                     <ProgressRing completionRate={tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100) : 0} />
